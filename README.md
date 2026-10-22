@@ -1,26 +1,26 @@
-# Mediatheque API
+<div align="center">
 
-> A REST API for managing a music-album library, built **twice** with FastAPI to compare two ways of accessing data: an ORM (SQLAlchemy) versus raw SQL (`sqlite3`).
+<img src="./.github/banner.svg" alt="Mediatheque API" width="100%">
 
-![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-pytest-38f0c0?style=flat-square)
+**A REST API for managing a music-album library, built **twice** with FastAPI to compare two ways of accessing data: an ORM (SQLAlchemy) versus raw SQL (`sqlite3`).**
 
----
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white) ![Tests](https://img.shields.io/badge/tests-pytest-38f0c0?style=flat-square)
 
-## Table of contents
+[Features](#-features) · [Getting started](#-getting-started) · [Tech stack](#-tech-stack)
 
-- [Two implementations, one specification](#two-implementations-one-specification)
-- [Features](#features)
-- [API overview](#api-overview)
-- [Getting started](#getting-started)
-- [Configuration](#configuration)
-- [Security](#security)
-- [Tests](#tests)
-- [Tech stack](#tech-stack)
+</div>
 
-## Two implementations, one specification
+## 🧬 Two implementations, one specification
+
+```mermaid
+flowchart LR
+    C["Client"] -->|POST login| AUTH["🔐 Auth<br/>hash check → signed token"]
+    C -->|GET albums| R["📚 Album routes"]
+    C -->|"POST · PUT · DELETE<br/>+ Bearer token"| G{"Token valid?"}
+    G -->|yes| R
+    G -->|no| X["401 / 403"]
+    R --> DB[("SQLite")]
+```
 
 Both versions expose the same album CRUD and the same authentication flow; only the internals differ.
 
@@ -34,7 +34,7 @@ Both versions expose the same album CRUD and the same authentication flow; only 
 
 Each folder has its own README, tests and `requirements.txt`.
 
-## Features
+## ✨ Features
 
 - Full CRUD on albums with the correct status codes (`201`, `404`, `204`).
 - **Public reads, protected writes** — listing and reading are open; create, update and delete require a token.
@@ -43,7 +43,7 @@ Each folder has its own README, tests and `requirements.txt`.
 - Persistent SQLite storage.
 - A default account created at first start, configured through environment variables.
 
-## API overview
+## 🔌 API overview
 
 | Method | Path | Access | Description |
 |---|---|---|---|
@@ -56,7 +56,7 @@ Each folder has its own README, tests and `requirements.txt`.
 
 Interactive documentation is served at `/docs` (Swagger UI).
 
-## Getting started
+## 🚀 Getting started
 
 ```bash
 # Version A — SQLAlchemy
@@ -76,17 +76,17 @@ uvicorn main:app --reload
 
 Then open <http://127.0.0.1:8000/docs>.
 
-## Configuration
+## ⚙️ Configuration
 
 Secrets are never hard-coded. Copy `.env.example` to `.env` in the version you run and set your own values (see each version's README for the variable names). Without a `.env`, the code falls back to development-only defaults that must not be used in production.
 
-## Security
+## 🛡️ Security
 
 - Passwords are stored as hashes — never in clear text.
 - Tokens are signed and expire after 30 minutes.
 - Configuration comes from environment variables; `.env` files are git-ignored.
 
-## Tests
+## 🧪 Tests
 
 ```bash
 pytest
@@ -94,10 +94,14 @@ pytest
 
 Each version ships two tests: authenticated creation succeeds, and creation without a token is rejected.
 
-## Tech stack
+## 🧰 Tech stack
 
 Python · FastAPI · Pydantic v2 · SQLAlchemy · SQLite · Pytest
 
 ---
 
-**Author** — Konaté Adama · [github.com/DaskoStudio](https://github.com/DaskoStudio)
+<div align="center">
+
+<sub>Built by <a href="https://github.com/DaskoStudio"><b>Konaté Adama</b></a> · <a href="https://github.com/DaskoStudio?tab=repositories">More projects</a></sub>
+
+</div>
