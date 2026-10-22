@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Bases de données locales
+*.db
+*.sqlite3
+
+# Secrets / config locale
+.env
+*.env
+
+# OS / éditeur
+.DS_Store
+.idea/
+.vscode/
