@@ -1,17 +1,18 @@
 """Configuration centrale de l'application (Version A)."""
+import os
 from datetime import timedelta
 
-# --- Sécurité / JWT ---
-SECRET_KEY = "version-a-secret-change-en-prod-1a2b3c4d5e6f"
+# --- Sécurité / JWT (fournis via variables d'environnement, voir .env.example) ---
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-change-me")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE = timedelta(minutes=30)
+ACCESS_TOKEN_EXPIRE = timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MIN", "30")))
 
 # --- Base de données ---
-DATABASE_URL = "sqlite:///./mediatheque.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mediatheque.db")
 
 # --- Compte créé au démarrage ---
-DEFAULT_USER = "bibliothecaire"
-DEFAULT_PASSWORD = "mediatheque2026"
+DEFAULT_USER = os.getenv("DEFAULT_USER", "bibliothecaire")
+DEFAULT_PASSWORD = os.getenv("DEFAULT_PASSWORD", "change-me")
 
 # --- Liste fixe des genres autorisés ---
 GENRES = (

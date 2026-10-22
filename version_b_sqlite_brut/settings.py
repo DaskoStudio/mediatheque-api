@@ -1,14 +1,16 @@
 """Réglages de la Version B."""
+import os
 
-BASE_FICHIER = "mediatheque_b.db"
+BASE_FICHIER = os.getenv("BASE_FICHIER", "mediatheque_b.db")
 
 # Clé de signature des jetons + durée de validité (en secondes).
-CLE_SIGNATURE = "version-b-cle-signature-9z8y7x6w5v"
-DUREE_JETON = 30 * 60  # 30 minutes
+# Fournies via variables d'environnement (voir .env.example).
+CLE_SIGNATURE = os.getenv("CLE_SIGNATURE", "dev-only-change-me")
+DUREE_JETON = int(os.getenv("DUREE_JETON", str(30 * 60)))  # 30 minutes
 
 # Compte présent dès le premier démarrage.
-COMPTE_DEFAUT = "admin"
-MDP_DEFAUT = "albums2026"
+COMPTE_DEFAUT = os.getenv("COMPTE_DEFAUT", "admin")
+MDP_DEFAUT = os.getenv("MDP_DEFAUT", "change-me")
 
 # Liste fixe des genres acceptés.
 GENRES_AUTORISES = [
