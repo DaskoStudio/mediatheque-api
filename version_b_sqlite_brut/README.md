@@ -1,58 +1,48 @@
-# Médiathèque d'albums — Version B (sqlite3 brut + itsdangerous)
+# Album Library — Version B (raw sqlite3 + itsdangerous)
 
-API REST d'une médiathèque d'albums de musique (FastAPI).
-Cette version n'utilise **aucun ORM** : accès à la base en **sqlite3 natif**, mots de
-passe hachés avec **PBKDF2/hashlib**, et authentification par **jeton signé à durée
-limitée** (itsdangerous) transmis en **HTTP Bearer**.
+REST API for a music-album library, built with FastAPI. This version uses **no ORM**: it talks to the database through native **`sqlite3`**, hashes passwords with **PBKDF2 (hashlib)** and authenticates with a **time-limited signed token** (itsdangerous) sent as an **HTTP Bearer** header.
 
-## Lancer l'API (une seule commande)
+## Run the API
 
 ```bash
 pip install -r requirements.txt
-uvicorn main:app --reload
+uvicorn main:app --reload     # or: python main.py
 ```
 
-(ou `python main.py`)
+Interactive docs (Swagger): <http://127.0.0.1:8000/docs>
 
-Documentation interactive Swagger : http://127.0.0.1:8000/docs
+## Configuration
 
-## Lancer les tests
+Copy `.env.example` to `.env` and set your own values.
 
-```bash
-pytest
-```
+| Variable | Purpose | Default |
+|---|---|---|
+| `CLE_SIGNATURE` | Token signing key | `dev-only-change-me` (development only) |
+| `DUREE_JETON` | Token lifetime in seconds | `1800` |
+| `BASE_FICHIER` | SQLite file name | `mediatheque_b.db` |
+| `COMPTE_DEFAUT` | Account created at start-up | `admin` |
+| `MDP_DEFAUT` | Password of that account | `change-me` |
 
-## Identifiants du compte (créé automatiquement au démarrage)
+Passwords are never stored in clear text: PBKDF2-SHA256, 200,000 iterations, random salt per user. Always set your own key and password outside local development.
 
-| Champ         | Valeur       |
-|---------------|--------------|
-| Nom           | `admin`      |
-| Mot de passe  | `albums2026` |
+## Authenticate (Swagger demo)
 
-Le mot de passe n'est **jamais** stocké en clair (PBKDF2-SHA256, 200 000 itérations,
-sel aléatoire par utilisateur).
-
-## Comment se connecter (démo Swagger)
-
-1. Route `POST /connexion` — envoyer un JSON `{ "nom": "...", "mot_de_passe": "..." }`.
-   → renvoie un champ `jeton`.
-2. Cliquer sur **Authorize** en haut de Swagger et coller le jeton (schéma Bearer).
-3. Les routes d'écriture deviennent accessibles.
-
-Le jeton **expire au bout de 30 minutes** (vérifié via `max_age` d'itsdangerous).
+1. Call `POST /connexion` with JSON `{ "nom": "...", "mot_de_passe": "..." }`. It returns a `jeton` field.
+2. Click **Authorize** at the top of Swagger and paste the token (Bearer scheme).
+3. Write routes are now available. The token expires after 30 minutes (checked with itsdangerous `max_age`).
 
 ## Routes
 
-| Méthode | Chemin           | Accès          | Description                     |
-|---------|------------------|----------------|---------------------------------|
-| GET     | `/albums`        | public         | Lister tous les albums          |
-| GET     | `/albums/{id}`   | public         | Lire un album (404 si absent)   |
-| POST    | `/albums`        | connecté       | Créer un album (**201**)        |
-| PUT     | `/albums/{id}`   | connecté       | Modifier un album               |
-| DELETE  | `/albums/{id}`   | connecté       | Supprimer un album (204)        |
-| POST    | `/connexion`     | public         | Se connecter, obtenir un jeton  |
+| Method | Path | Access | Description |
+|---|---|---|---|
+| GET | `/albums` | public | List all albums |
+| GET | `/albums/{id}` | public | Read one album (`404` if missing) |
+| POST | `/albums` | authenticated | Create an album (`201`) |
+| PUT | `/albums/{id}` | authenticated | Update an album |
+| DELETE | `/albums/{id}` | authenticated | Delete an album (`204`) |
+| POST | `/connexion` | public | Log in and get a token |
 
-## Modèle d'un album
+## Album model
 
 ```json
 {
@@ -64,50 +54,37 @@ Le jeton **expire au bout de 30 minutes** (vérifié via `max_age` d'itsdangerou
 }
 ```
 
-Genres autorisés : Rock, Pop, Jazz, Rap, Classique, Electro, Metal, Funk, Soul, Variété.
+Allowed genres: Rock, Pop, Jazz, Rap, Classique, Electro, Metal, Funk, Soul, Variété.
 
-## Validation des données
+## Validation
 
-- Titre / artiste vides (ou uniquement des espaces) → refusés (422).
-- Note hors de l'intervalle 0–10 → refusée (422).
-- Année hors de 1900–2026 → refusée (422).
-- Genre hors de la liste fixe → refusé (422).
-- **Champ interne `date_ajout`** : rempli par l'API à la création, stocké en base
-  mais **jamais renvoyé** dans une réponse (absent du modèle `AlbumSortie`).
+- Empty or whitespace-only title or artist → `422`.
+- Rating outside 0–10 → `422`.
+- Year outside 1900–2026 → `422`.
+- Genre outside the fixed list → `422`.
+- Internal field `date_ajout`: filled in by the API at creation, stored in the database but **never returned** (absent from the `AlbumSortie` model).
 
-> Note : sans jeton, l'écriture renvoie **403** (garde HTTP Bearer). C'est bien un
-> refus d'accès, comme demandé.
+> Without a token, write routes are refused with `401` or `403` depending on the Bearer guard — in both cases access is denied.
 
-## Persistance
+## Persistence
 
-Les albums sont stockés dans le fichier SQLite `mediatheque_b.db`.
-Après un arrêt/relance de l'API, les données sont toujours là.
+Albums are stored in the SQLite file `mediatheque_b.db` and survive restarts.
 
-## Organisation du code
+## Code layout
 
-```
-main.py        Point d'entrée, montage des routeurs, init au démarrage
-settings.py    Constantes (clé, durée jeton, genres, identifiants)
-database.py    Accès sqlite3 brut (création tables, requêtes CRUD)
-models.py      Modèles Pydantic (validation entrée / forme sortie)
-security.py    Hachage PBKDF2 + jetons signés itsdangerous
-auth.py        Route /connexion + garde HTTP Bearer
-albums.py      Routes CRUD des albums
-test_api.py    Test création + test refus sans connexion
+```text
+main.py        Entry point, router mounting, start-up initialisation
+settings.py    Settings read from environment variables
+database.py    Raw sqlite3 access (table creation, CRUD queries)
+models.py      Pydantic models (input validation / output shape)
+security.py    PBKDF2 hashing and itsdangerous signed tokens
+auth.py        /connexion route and HTTP Bearer guard
+albums.py      Album CRUD routes
+test_api.py    Creation test and rejection-without-token test
 ```
 
-## Ce qui fonctionne
+## Status
 
-- ✅ Organisation multi-fichiers, lancement en une commande
-- ✅ Validation (titre vide, note 0–10, année, genre en liste fixe)
-- ✅ Champ interne non exposé
-- ✅ Stockage SQLite persistant (sqlite3 natif, pas d'ORM)
-- ✅ CRUD complet avec bons codes (201 / 404 / 204)
-- ✅ Compte au démarrage, mot de passe haché, jeton expirant
-- ✅ Lecture publique / écriture protégée
-- ✅ Deux tests (création + refus sans jeton) — `pytest` : 2 passés
+All the requirements are covered: multi-file layout, one-command start, validation, hidden internal field, persistent storage with native sqlite3 (no ORM), full CRUD with proper status codes, hashed password with expiring token, public reads and protected writes, two passing tests (`pytest`).
 
-## Ce qui n'est pas terminé
-
-Rien de bloquant : tous les points du sujet sont couverts. Améliorations possibles
-non demandées : plusieurs comptes utilisateurs, index de recherche, pagination.
+Possible improvements: multiple user accounts, search index, pagination.

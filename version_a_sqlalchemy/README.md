@@ -1,56 +1,48 @@
-# Médiathèque d'albums — Version A (SQLAlchemy + JWT)
+# Album Library — Version A (SQLAlchemy + JWT)
 
-API REST d'une médiathèque d'albums de musique (FastAPI).
-Cette version utilise l'**ORM SQLAlchemy**, la validation **Pydantic v2**, et une
-authentification par **jeton JWT** (python-jose) avec mots de passe hachés en **bcrypt**.
+REST API for a music-album library, built with FastAPI. This version uses the **SQLAlchemy ORM**, **Pydantic v2** validation and **JWT** authentication (python-jose) with **bcrypt**-hashed passwords.
 
-## Lancer l'API (une seule commande)
+## Run the API
 
 ```bash
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload     # or: python -m app.main
 ```
 
-(ou `python -m app.main`)
+Interactive docs (Swagger): <http://127.0.0.1:8000/docs>
 
-Documentation interactive Swagger : http://127.0.0.1:8000/docs
+## Configuration
 
-## Lancer les tests
+Copy `.env.example` to `.env` and set your own values.
 
-```bash
-pytest
-```
+| Variable | Purpose | Default |
+|---|---|---|
+| `SECRET_KEY` | JWT signing key | `dev-only-change-me` (development only) |
+| `ACCESS_TOKEN_EXPIRE_MIN` | Token lifetime in minutes | `30` |
+| `DATABASE_URL` | Database URL | `sqlite:///./mediatheque.db` |
+| `DEFAULT_USER` | Account created at start-up | `bibliothecaire` |
+| `DEFAULT_PASSWORD` | Password of that account | `change-me` |
 
-## Identifiants du compte (créé automatiquement au démarrage)
+The password is never stored in clear text (bcrypt hash in the database). Always set your own `SECRET_KEY` and `DEFAULT_PASSWORD` outside local development.
 
-| Champ         | Valeur            |
-|---------------|-------------------|
-| Nom d'utilisateur | `bibliothecaire` |
-| Mot de passe  | `mediatheque2026` |
+## Authenticate (Swagger demo)
 
-Le mot de passe n'est **jamais** stocké en clair (hash bcrypt en base).
-
-## Comment se connecter (démo Swagger)
-
-1. Route `POST /login` — envoyer `username` + `password` (formulaire OAuth2).
-   → renvoie un `access_token`.
-2. Cliquer sur **Authorize** en haut de Swagger et coller le jeton.
-3. Les routes d'écriture sont alors accessibles.
-
-Le jeton **expire au bout de 30 minutes**.
+1. Call `POST /login` with `username` and `password` (OAuth2 form). It returns an `access_token`.
+2. Click **Authorize** at the top of Swagger and paste the token.
+3. Write routes are now available. The token expires after 30 minutes.
 
 ## Routes
 
-| Méthode | Chemin           | Accès          | Description                     |
-|---------|------------------|----------------|---------------------------------|
-| GET     | `/albums`        | public         | Lister tous les albums          |
-| GET     | `/albums/{id}`   | public         | Lire un album (404 si absent)   |
-| POST    | `/albums`        | connecté       | Créer un album (**201**)        |
-| PUT     | `/albums/{id}`   | connecté       | Modifier un album               |
-| DELETE  | `/albums/{id}`   | connecté       | Supprimer un album (204)        |
-| POST    | `/login`         | public         | Se connecter, obtenir un jeton  |
+| Method | Path | Access | Description |
+|---|---|---|---|
+| GET | `/albums` | public | List all albums |
+| GET | `/albums/{id}` | public | Read one album (`404` if missing) |
+| POST | `/albums` | authenticated | Create an album (`201`) |
+| PUT | `/albums/{id}` | authenticated | Update an album |
+| DELETE | `/albums/{id}` | authenticated | Delete an album (`204`) |
+| POST | `/login` | public | Log in and get a token |
 
-## Modèle d'un album
+## Album model
 
 ```json
 {
@@ -62,50 +54,38 @@ Le jeton **expire au bout de 30 minutes**.
 }
 ```
 
-Genres autorisés : Rock, Pop, Jazz, Hip-Hop, Classique, Electro, Metal, Reggae, Blues, RnB.
+Allowed genres: Rock, Pop, Jazz, Hip-Hop, Classique, Electro, Metal, Reggae, Blues, RnB.
 
-## Validation des données
+## Validation
 
-- Titre / artiste vides (ou uniquement des espaces) → refusés (422).
-- Note hors de l'intervalle 0–10 → refusée (422).
-- Année absurde (avant 1900 ou dans le futur) → refusée (422).
-- Genre hors de la liste fixe → refusé (422).
-- **Champ interne `ajoute_par`** : rempli par l'API (login du créateur), stocké en
-  base mais **jamais renvoyé** dans une réponse (absent du schéma `AlbumOut`).
+- Empty or whitespace-only title or artist → `422`.
+- Rating outside 0–10 → `422`.
+- Year before 1900 or too far in the future → `422`.
+- Genre outside the fixed list → `422`.
+- Internal field `ajoute_par`: filled in by the API (login of the creator), stored in the database but **never returned** (absent from the `AlbumOut` schema).
 
-## Persistance
+## Persistence
 
-Les albums sont stockés dans le fichier SQLite `mediatheque.db`.
-Après un arrêt/relance de l'API, les données sont toujours là.
+Albums are stored in the SQLite file `mediatheque.db` and survive restarts.
 
-## Organisation du code
+## Code layout
 
-```
+```text
 app/
-├── main.py       Point d'entrée, création de l'app + compte par défaut
-├── config.py     Constantes (secret, durée jeton, genres, identifiants)
-├── database.py   Connexion + session SQLAlchemy
-├── models.py     Modèles ORM (tables Utilisateur, Album)
-├── schemas.py    Schémas Pydantic (entrée / sortie / token)
-├── security.py   Hachage bcrypt + création/lecture des JWT
-├── auth.py       Route /login + dépendance "utilisateur connecté"
-└── routes.py     Routes CRUD des albums
+├── main.py       Entry point, app creation, default account
+├── config.py     Settings read from environment variables
+├── database.py   SQLAlchemy engine and session
+├── models.py     ORM models (User, Album)
+├── schemas.py    Pydantic schemas (input / output / token)
+├── security.py   bcrypt hashing and JWT creation / decoding
+├── auth.py       /login route and "current user" dependency
+└── routes.py     Album CRUD routes
 tests/
-└── test_api.py   Test création + test refus sans connexion
+└── test_api.py   Creation test and rejection-without-token test
 ```
 
-## Ce qui fonctionne
+## Status
 
-- ✅ Organisation multi-fichiers, lancement en une commande
-- ✅ Validation (titre vide, note 0–10, année, genre en liste fixe)
-- ✅ Champ interne non exposé
-- ✅ Stockage SQLite persistant
-- ✅ CRUD complet avec bons codes (201 / 404 / 204)
-- ✅ Compte au démarrage, mot de passe haché, jeton JWT expirant
-- ✅ Lecture publique / écriture protégée
-- ✅ Deux tests (création + refus sans jeton) — `pytest` : 2 passés
+All the requirements are covered: multi-file layout, one-command start, validation, hidden internal field, persistent storage, full CRUD with proper status codes, hashed password with expiring JWT, public reads and protected writes, two passing tests (`pytest`).
 
-## Ce qui n'est pas terminé
-
-Rien de bloquant : tous les points du sujet sont couverts. Améliorations possibles
-non demandées : rafraîchissement de jeton, pagination de la liste, plusieurs comptes.
+Possible improvements: token refresh, pagination, multiple accounts.
